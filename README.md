@@ -1,6 +1,8 @@
 # Alpha-B
 Bilibili视频下载
 
+建议下载方式：首先输入UP主UID号，例如：UID:456065280，把UP主已经发布的视频全部下载。然后在有更新视频后，输入逗号分隔的AV号，例如：70052790,71075368,71272687
+
 下载ffmpeg-win32-v3.2.4.exe, 放到ffmpeg的appdata文件夹下:C:\Users\XXX\AppData\Local\imageio\ffmpeg
 
 确保放进去的文件名一定改成ffmpeg-win32-v3.2.4.exe, 因为"D:\Python37\lib\site-packages\imageio\plugins\ffmpeg.py"文件里就是硬编码的这个文件名.
