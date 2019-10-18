@@ -346,7 +346,7 @@ if __name__ == "__main__":
     inputQual.pack()
     confirm = Button(root,text="开始下载",command=lambda:thread_it(do_prepare,inputStart.get(), keyTrans[inputQual.get()] ))
     msgbox = Text(root)
-    msgbox.insert('1.0',"对于单P视频:\n 1.直接输入B站视频链接地址或B站av号\n (eg: https://www.bilibili.com/video/av49842011 or 49842011)\n 2.多个单P视频输入逗号分隔的B站av号\n (eg: 49842011,49842012,49842013)\n\n对于多P视频:\n 1.下载全集:直接输入B站av号或者视频链接地址\n (eg: 49842011或者https://www.bilibili.com/video/av49842011)\n 2.下载其中一集:输入那一集的视频链接地址\n (eg: https://www.bilibili.com/video/av19516333/?p=2)\n\n对于下载UP主的所有视频：\n 直接输入UP主的ID\n (eg: UID:456065280)\n\n对于下载所有关注UP主的最新视频：\n 不用输入直接点击开始下载，自动根据Alpha-B.ini配置下载最新视频。")
+    msgbox.insert('1.0',"对于单P视频:\n 1.直接输入B站视频链接地址或B站av号\n (eg: https://www.bilibili.com/video/av71584262 or 71584262)\n 2.多个单P视频输入逗号分隔的B站av号\n (eg: 71584262,71559288,71459946)\n\n对于多P视频:\n 1.下载全集:直接输入B站av号或者视频链接地址\n (eg: 49842011或者https://www.bilibili.com/video/av49842011)\n 2.下载其中一集:输入那一集的视频链接地址\n (eg: https://www.bilibili.com/video/av19516333/?p=2)\n\n对于下载UP主的所有视频：\n 直接输入UP主的ID\n (eg: UID:456065280)\n\n对于下载所有关注UP主的最新视频：\n 不用输入直接点击开始下载，自动根据Alpha-B.ini配置下载最新视频。")
     msgbox.pack()
     download=Canvas(root,width=465,height=23,bg="white")
     # 进度条的设置
