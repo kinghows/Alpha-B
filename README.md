@@ -25,7 +25,7 @@ last_av2 =
 
 #last_av：不需要输入，程序自动记载最后一次下载的AV号
 
-下载ffmpeg-win32-v3.2.4.exe, 放到ffmpeg的appdata文件夹下:C:\Users\XXX\AppData\Local\imageio\ffmpeg
+下载ffmpeg-win32-v3.2.4.exe, 放到文件夹下:C:\Users\XXX\AppData\Local\imageio\ffmpeg
 
 确保放进去的文件名一定改成ffmpeg-win32-v3.2.4.exe, 因为"D:\Python37\lib\site-packages\imageio\plugins\ffmpeg.py"文件里就是硬编码的这个文件名.
 
