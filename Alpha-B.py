@@ -88,7 +88,7 @@ def format_size(bytes):
         bytes = float(bytes)
         kb = bytes / 1024
     except:
-        print("传入的字节格式不对")
+        print("输入的字节格式不对")
         return "Error"
     if kb >= 1024:
         M = kb / 1024
@@ -107,10 +107,10 @@ def down_video(video_list, title, start_url, page,muti):
     
     if muti :
         currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video', title)  # 当前目录作为下载目录
-        print('正在下载P{}段...:'.format(page) )
+        print('正在下载P{}段...'.format(page) )
     else:
         currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video')  # 当前目录作为下载目录
-        print('下载中...:')
+        print('下载中...')
 
     for i in video_list:
         opener = urllib.request.build_opener()
@@ -239,14 +239,31 @@ def do_prepare(inputStart,inputQuality):
     }
 
     start = inputStart
-    if start[0:5] == 'https':  # 如果输入的是av号
+    if start[0:5] == 'https':  
         # https://www.bilibili.com/video/av46958874/?spm_id_from=333.334.b_63686965665f7265636f6d6d656e64.16
         start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + re.search(r'/av(\d+)/*', start).group(1)
         down_videos(start,quality, start_url, headers)
+    elif start[0:4] == 'UID:': 
+        avlist = []
+        uid = start[4:]
+        html = urllib.request.urlopen("https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page=1&keyword=&order=pubdate")
+        pages = json.loads(html.read())['data']['pages']
+        for page in range(pages): 
+            html = urllib.request.urlopen("https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page="+ str(page+1) +"&keyword=&order=pubdate")
+            jsonvlist = json.loads(html.read())['data']['vlist']
+            for i in range(len(jsonvlist)):
+                avlist.append(str(jsonvlist[i]['aid']))
+        
+        for aid in avlist:
+        # 获取cid的api, 输入aid即可
+            start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
+            down_videos(aid,quality, start_url, headers)  
+        
     else:
+        avlist=[]
         avlist = start.split(",")
         for aid in avlist:
-        # 获取cid的api, 传入aid即可
+        # 获取cid的api, 输入aid即可
             start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
             down_videos(aid,quality, start_url, headers)
 
@@ -269,14 +286,14 @@ if __name__ == "__main__":
     # 设置标题
     root.title('B站视频下载小助手')
     # 设置ico
-    root.iconbitmap('./Pic/favicon.ico')
+    root.iconbitmap('favicon.ico')
     # 设置Logo
-    photo = PhotoImage(file='./Pic/logo.png')
+    photo = PhotoImage(file='logo.png')
     logo = Label(root,image=photo)
     logo.pack()
     # 各项输入栏和选择框
     inputStart = Entry(root,bd=4,width=600)
-    labelStart=Label(root,text="请输入您要下载的B站av号或者视频链接地址:") # 地址输入
+    labelStart=Label(root,text="请输入您要下载的B站av号或者视频链接地址或者UP主的UID号:") # 地址输入
     labelStart.pack(anchor="w")
     inputStart.pack()
     labelQual = Label(root,text="请选择您要下载视频的清晰度") # 清晰度选择
@@ -295,7 +312,7 @@ if __name__ == "__main__":
     inputQual.pack()
     confirm = Button(root,text="开始下载",command=lambda:thread_it(do_prepare,inputStart.get(), keyTrans[inputQual.get()] ))
     msgbox = Text(root)
-    msgbox.insert('1.0',"对于单P视频:\n 1.直接传入B站视频链接地址或B站av号\n (eg: https://www.bilibili.com/video/av49842011 or 49842011)\n 2.多个单P视频传入逗号分隔的B站av号\n (eg: 49842011,49842012,49842013)\n\n对于多P视频:\n 1.下载全集:直接传入B站av号或者视频链接地址\n (eg: 49842011或者https://www.bilibili.com/video/av49842011)\n 2.下载其中一集:传入那一集的视频链接地址\n (eg: https://www.bilibili.com/video/av19516333/?p=2)")
+    msgbox.insert('1.0',"对于单P视频:\n 1.直接输入B站视频链接地址或B站av号\n (eg: https://www.bilibili.com/video/av49842011 or 49842011)\n 2.多个单P视频输入逗号分隔的B站av号\n (eg: 49842011,49842012,49842013)\n\n对于多P视频:\n 1.下载全集:直接输入B站av号或者视频链接地址\n (eg: 49842011或者https://www.bilibili.com/video/av49842011)\n 2.下载其中一集:输入那一集的视频链接地址\n (eg: https://www.bilibili.com/video/av19516333/?p=2)\n\n对于下载UP主的所有视频：\n 直接输入UP主的ID\n (eg: UID:456065280) ")
     msgbox.pack()
     download=Canvas(root,width=465,height=23,bg="white")
     # 进度条的设置
