@@ -9,6 +9,7 @@ import os, sys, threading
 from tkinter import *
 from tkinter import ttk
 from tkinter import StringVar
+import configparser
 
 root=Tk()
 start_time = time.time()
@@ -164,9 +165,10 @@ def combine_video(title_list):
             print('合并完成' )
 
 #  下载视频
-def down_videos(start,quality, start_url, headers):
+def down_videos(start,quality, start_url, headers,uid_no):
     html = requests.get(start_url, headers=headers).json()
     data = html['data']
+    title = data['title']
     cid_list = []
     if '?p=' in start:
         # 单独下载分P视频中的一集
@@ -184,7 +186,8 @@ def down_videos(start,quality, start_url, headers):
     title_list = []
     for item in cid_list:
         cid = str(item['cid'])
-        title = item['part']
+        if muti:
+            title = item['part']
         title = re.sub(r'[\/\\:*?"<>|]', '', title)  # 替换为空的
         print('[标题]:' + title)
         title_list.append(title)
@@ -217,6 +220,35 @@ def down_videos(start,quality, start_url, headers):
     print('下载总耗时%.2f分钟' % (int(end_time - start_time) / 60))
     print('*' * 30)
 
+    if uid_no != '':
+        config = configparser.ConfigParser()
+        config.read("Alpha-B.ini")
+        config.set("bili_set", "last_av"+uid_no,start)
+        config.write(open('Alpha-B.ini', 'w')) 
+
+def down_uid(uid,last_aid,quality,headers,uid_no):
+    avlist = []
+    html = urllib.request.urlopen("https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page=1&keyword=&order=pubdate")
+    pages = json.loads(html.read())['data']['pages']
+    flag = True
+    for page in range(pages): 
+        html = urllib.request.urlopen("https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page="+ str(page+1) +"&keyword=&order=pubdate")
+        jsonvlist = json.loads(html.read())['data']['vlist']
+        for i in range(len(jsonvlist)):
+            aid = str(jsonvlist[i]['aid'])
+            if aid == last_aid:
+                flag = False
+                break
+            else:
+                avlist.append(aid)
+        if not flag:
+            break
+
+    for aid in avlist:
+    # 获取cid的api, 输入aid即可
+        start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
+        down_videos(aid,quality, start_url, headers,uid_no) 
+
 def do_prepare(inputStart,inputQuality):
     # 清空进度条
     download.coords(fill_line1,(0,0,0,23))
@@ -239,33 +271,35 @@ def do_prepare(inputStart,inputQuality):
     }
 
     start = inputStart
-    if start[0:5] == 'https':  
+    if start == '':
+        config = configparser.ConfigParser()
+        config.read("Alpha-B.ini")
+        uid_count = int(config.get("bili_set","uid_count"))
+        n = 1
+        while n <= uid_count:
+            uid_no = str(n)
+            uid = config.get ( "bili_set", "uid"+uid_no)
+            last_aid = config.get ( "bili_set", "last_av"+uid_no)
+            down_uid(uid,last_aid,quality,headers,uid_no)
+            n += 1
+    elif start[0:5] == 'https':  
         # https://www.bilibili.com/video/av46958874/?spm_id_from=333.334.b_63686965665f7265636f6d6d656e64.16
         start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + re.search(r'/av(\d+)/*', start).group(1)
-        down_videos(start,quality, start_url, headers)
+        uid_no = ''
+        down_videos(start,quality, start_url, headers,uid_no)
     elif start[0:4] == 'UID:': 
-        avlist = []
         uid = start[4:]
-        html = urllib.request.urlopen("https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page=1&keyword=&order=pubdate")
-        pages = json.loads(html.read())['data']['pages']
-        for page in range(pages): 
-            html = urllib.request.urlopen("https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page="+ str(page+1) +"&keyword=&order=pubdate")
-            jsonvlist = json.loads(html.read())['data']['vlist']
-            for i in range(len(jsonvlist)):
-                avlist.append(str(jsonvlist[i]['aid']))
-        
-        for aid in avlist:
-        # 获取cid的api, 输入aid即可
-            start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
-            down_videos(aid,quality, start_url, headers)  
-        
+        last_aid = ''
+        uid_no = ''
+        down_uid(uid,last_aid,quality,headers,uid_no)
     else:
         avlist=[]
+        uid_no = ''
         avlist = start.split(",")
         for aid in avlist:
         # 获取cid的api, 输入aid即可
             start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
-            down_videos(aid,quality, start_url, headers)
+            down_videos(aid,quality, start_url, headers,uid_no)
 
     # 如果是windows系统，下载完成后打开下载目录
     #currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video')  # 当前目录作为下载目录
@@ -312,7 +346,7 @@ if __name__ == "__main__":
     inputQual.pack()
     confirm = Button(root,text="开始下载",command=lambda:thread_it(do_prepare,inputStart.get(), keyTrans[inputQual.get()] ))
     msgbox = Text(root)
-    msgbox.insert('1.0',"对于单P视频:\n 1.直接输入B站视频链接地址或B站av号\n (eg: https://www.bilibili.com/video/av49842011 or 49842011)\n 2.多个单P视频输入逗号分隔的B站av号\n (eg: 49842011,49842012,49842013)\n\n对于多P视频:\n 1.下载全集:直接输入B站av号或者视频链接地址\n (eg: 49842011或者https://www.bilibili.com/video/av49842011)\n 2.下载其中一集:输入那一集的视频链接地址\n (eg: https://www.bilibili.com/video/av19516333/?p=2)\n\n对于下载UP主的所有视频：\n 直接输入UP主的ID\n (eg: UID:456065280) ")
+    msgbox.insert('1.0',"对于单P视频:\n 1.直接输入B站视频链接地址或B站av号\n (eg: https://www.bilibili.com/video/av49842011 or 49842011)\n 2.多个单P视频输入逗号分隔的B站av号\n (eg: 49842011,49842012,49842013)\n\n对于多P视频:\n 1.下载全集:直接输入B站av号或者视频链接地址\n (eg: 49842011或者https://www.bilibili.com/video/av49842011)\n 2.下载其中一集:输入那一集的视频链接地址\n (eg: https://www.bilibili.com/video/av19516333/?p=2)\n\n对于下载UP主的所有视频：\n 直接输入UP主的ID\n (eg: UID:456065280)\n\n对于下载所有关注UP主的最新视频：\n 不用输入直接点击开始下载，自动根据Alpha-B.ini配置下载最新视频。")
     msgbox.pack()
     download=Canvas(root,width=465,height=23,bg="white")
     # 进度条的设置
