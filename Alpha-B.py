@@ -243,7 +243,8 @@ def down_uid(uid,last_aid,quality,headers,uid_no):
                 avlist.append(aid)
         if not flag:
             break
-
+    
+    avlist.sort
     for aid in avlist:
     # 获取cid的api, 输入aid即可
         start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
