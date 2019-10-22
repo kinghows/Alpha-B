@@ -244,8 +244,7 @@ def down_uid(uid,last_aid,quality,headers,uid_no):
         if not flag:
             break
     
-    avlist.sort
-    for aid in avlist:
+    for aid in sorted(avlist):
     # 获取cid的api, 输入aid即可
         start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
         down_videos(aid,quality, start_url, headers,uid_no) 
@@ -282,6 +281,7 @@ def do_prepare(inputStart,inputQuality):
             uid = config.get ( "bili_set", "uid"+uid_no)
             last_aid = config.get ( "bili_set", "last_av"+uid_no)
             down_uid(uid,last_aid,quality,headers,uid_no)
+            print('UID：' +uid + ' 最新视频已下载。')
             n += 1
     elif start[0:5] == 'https':  
         # https://www.bilibili.com/video/av46958874/?spm_id_from=333.334.b_63686965665f7265636f6d6d656e64.16
