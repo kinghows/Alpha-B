@@ -283,6 +283,7 @@ def do_prepare(inputStart,inputQuality):
             down_uid(uid,last_aid,quality,headers,uid_no)
             print('UID：' +uid + ' 最新视频已下载。')
             n += 1
+        print('所有订阅UP主的最新视频已下载。')
     elif start[0:5] == 'https':  
         # https://www.bilibili.com/video/av46958874/?spm_id_from=333.334.b_63686965665f7265636f6d6d656e64.16
         start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + re.search(r'/av(\d+)/*', start).group(1)
