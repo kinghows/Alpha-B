@@ -1,7 +1,7 @@
 # !/usr/bin/python
 # -*- coding:utf-8 -*-
 
-import requests, time, hashlib, re, json
+import requests, time, hashlib,urllib.request, re, json
 import imageio
 imageio.plugins.ffmpeg.download()
 from moviepy.editor import *
