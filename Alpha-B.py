@@ -1,7 +1,7 @@
 # !/usr/bin/python
 # -*- coding:utf-8 -*-
 
-import requests, time, hashlib, urllib.request, re, json
+import requests, time, hashlib, re, json
 import imageio
 imageio.plugins.ffmpeg.download()
 from moviepy.editor import *
@@ -228,12 +228,15 @@ def down_videos(start,quality, start_url, headers,uid_no):
 
 def down_uid(uid,last_aid,quality,headers,uid_no):
     avlist = []
-    html = urllib.request.urlopen("https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page=1&keyword=&order=pubdate")
-    pages = json.loads(html.read())['data']['pages']
+    pages = ''
+    start_url = "https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page=1&keyword=&order=pubdate"
+    html = requests.get(start_url, headers=headers).json()
+    pages = html['data']['pages']
     flag = True
     for page in range(pages): 
-        html = urllib.request.urlopen("https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page="+ str(page+1) +"&keyword=&order=pubdate")
-        jsonvlist = json.loads(html.read())['data']['vlist']
+        start_url = "https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page="+ str(page+1) +"&keyword=&order=pubdate"
+        html = requests.get(start_url, headers=headers).json()
+        jsonvlist = html['data']['vlist']
         for i in range(len(jsonvlist)):
             aid = str(jsonvlist[i]['aid'])
             if aid == last_aid:
