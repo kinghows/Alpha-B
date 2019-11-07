@@ -1,7 +1,7 @@
 # !/usr/bin/python
 # -*- coding:utf-8 -*-
 
-import requests, time, hashlib,urllib.request, re, json
+import requests, time, hashlib,urllib.request,urllib.error,re, json
 import imageio
 imageio.plugins.ffmpeg.download()
 from moviepy.editor import *
@@ -103,15 +103,11 @@ def format_size(bytes):
 
 
 #  下载视频
-def down_video(video_list, title, start_url, page,muti):
+def down_video(owner_name,video_list, title, start_url, page):
     num = 1
     
-    if muti :
-        currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video', title)  # 当前目录作为下载目录
-        print('正在下载P{}段...'.format(page) )
-    else:
-        currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video')  # 当前目录作为下载目录
-        print('下载中...')
+    currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video',owner_name)  # 当前目录作为下载目录
+    print('下载中...')
 
     for i in video_list:
         opener = urllib.request.build_opener()
@@ -133,98 +129,55 @@ def down_video(video_list, title, start_url, page,muti):
             os.makedirs(currentVideoPath)
         # 开始下载
         if len(video_list) > 1:
-            urllib.request.urlretrieve(url=i, filename=os.path.join(currentVideoPath, r'{}-{}.flv'.format(title, num)),reporthook=Schedule_cmd)  # 写成mp4也行  title + '-' + num + '.flv'
+            filename = os.path.join(currentVideoPath, r'{}-{}.flv'.format(title, num))
         else:
-            urllib.request.urlretrieve(url=i, filename=os.path.join(currentVideoPath, r'{}.flv'.format(title)),reporthook=Schedule_cmd)  # 写成mp4也行  title + '-' + num + '.flv'
-        num += 1
+            filename = os.path.join(currentVideoPath, r'{}.flv'.format(title))
 
-# 合并视频(20190802新版)
-def combine_video(title_list):
-    video_path = os.path.join(os.getcwd(), 'bilibili_video')  # 下载目录
-    for title in title_list:
-        current_video_path = os.path.join(video_path ,title)
-        if len(os.listdir(current_video_path)) >= 2:
-            # 视频大于一段才要合并
-            print('下载完成,正在合并...')
-            # 定义一个数组
-            L = []
-            # 遍历所有文件
-            for file in sorted(os.listdir(current_video_path), key=lambda x: int(x[x.rindex("-") + 1:x.rindex(".")])):
-                # 如果后缀名为 .mp4/.flv
-                if os.path.splitext(file)[1] == '.flv':
-                    # 拼接成完整路径
-                    filePath = os.path.join(current_video_path, file)
-                    # 载入视频
-                    video = VideoFileClip(filePath)
-                    # 添加到数组
-                    L.append(video)
-            # 拼接视频
-            final_clip = concatenate_videoclips(L)
-            # 生成目标视频文件
-            final_clip.to_videofile(os.path.join(current_video_path, r'{}.mp4'.format(title)), fps=24, remove_temp=False)
-            print('合并完成' )
+        if not os.path.exists(filename):
+            try:
+                urllib.request.urlretrieve(url=i, filename=filename,reporthook=Schedule_cmd)
+            except urllib.error.HTTPError as e:
+                print('HTTPError reason: '+ e.reason)
+            except urllib.error.URLError as e:
+                print('URLError reason: '+ e.reason)
+
+        num += 1
 
 #  下载视频
 def down_videos(start,quality, start_url, headers,uid_no):
     html = requests.get(start_url, headers=headers).json()
-    data = html['data']
-    title = data['title']
-    cid_list = []
-    if '?p=' in start:
-        # 单独下载分P视频中的一集
-        p = re.search(r'\?p=(\d+)',start).group(1)
-        cid_list.append(data['pages'][int(p) - 1])
-    else:
-        # 如果p不存在就是全集下载
-        cid_list = data['pages']
-    if len(cid_list) ==1:
-        muti = False
-    else:
-        muti = True
-    # 创建线程池
-    threadpool = []
-    title_list = []
-    for item in cid_list:
-        cid = str(item['cid'])
-        if muti:
+    if html['code']==0:
+        data = html['data']
+        owner_name = data['owner']['name']
+        cid_list = []
+        if '?p=' in start:
+            # 单独下载分P视频中的一集
+            p = re.search(r'\?p=(\d+)',start).group(1)
+            cid_list.append(data['pages'][int(p) - 1])
+        else:
+            # 如果p不存在就是全集下载
+            cid_list = data['pages']
+
+        for item in cid_list:
+            cid = str(item['cid'])
             title = item['part']
-        title = re.sub(r'[\/\\:*?"<>|]', '', title)  # 替换为空的
-        print('[标题]:' + title)
-        title_list.append(title)
-        page = str(item['page'])
-        start_url = start_url + "/?p=" + page
-        video_list = get_play_list(start_url, cid, quality)
-        start_time = time.time()
-        # down_video(video_list, title, start_url, page)
-        # 定义线程
-        th = threading.Thread(target=down_video, args=(video_list, title, start_url, page,muti))
-        # 将线程加入线程池
-        threadpool.append(th)
+            title = re.sub(r'[\/\\:*?"<>|]', '', title)  # 替换为空的
+            print('[标题]:' + title)
+            page = str(item['page'])
+            start_url = start_url + "/?p=" + page
+            video_list = get_play_list(start_url, cid, quality)
+            start_time = time.time()
+            down_video(owner_name,video_list, title, start_url, page)
+            print('下载完成')
+            end_time = time.time()  # 结束时间
+            print('下载总耗时%.2f分钟' % (int(end_time - start_time) / 60))
+            print('*' * 30)
 
-    # 开始线程
-    for th in threadpool:
-        th.start()
-    # 等待所有线程运行完毕
-    for th in threadpool:
-        th.join()
-    
-    # 最后合并视频
-    #print(",".join(title_list))
-    if muti:
-        combine_video(title_list)
-    else:
-        # 视频只有一段则直接打印下载完成
-        print('下载完成')
-
-    end_time = time.time()  # 结束时间
-    print('下载总耗时%.2f分钟' % (int(end_time - start_time) / 60))
-    print('*' * 30)
-
-    if uid_no != '':
-        config = configparser.ConfigParser()
-        config.read("Alpha-B.ini")
-        config.set("bili_set", "last_av"+uid_no,start)
-        config.write(open('Alpha-B.ini', 'w')) 
+        if uid_no != '':
+            config = configparser.ConfigParser()
+            config.read("Alpha-B.ini")
+            config.set("bili_set", "last_av"+uid_no,start)
+            config.write(open('Alpha-B.ini', 'w')) 
 
 def down_uid(uid,last_aid,quality,headers,uid_no):
     avlist = []
@@ -284,7 +237,7 @@ def do_prepare(inputStart,inputQuality):
             uid = config.get ( "bili_set", "uid"+uid_no)
             last_aid = config.get ( "bili_set", "last_av"+uid_no)
             down_uid(uid,last_aid,quality,headers,uid_no)
-            print('UID：' +uid + ' 最新视频已下载。')
+            print('UID' + uid_no + '：' + uid + ' 最新视频已下载。')
             n += 1
         print('所有订阅UP主的最新视频已下载。')
     elif start[0:5] == 'https':  
