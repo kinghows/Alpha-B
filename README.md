@@ -46,3 +46,17 @@ pip install numpy==1.16.2
 打包成一个exe文件：
 
 pyinstaller –F –p moviepy Alpha-B.py
+
+
+## 好玩的Alpha系列，喜欢的打颗星：
+
+- [Alpha-12306：买个票](https://github.com/kinghows/Alpha-12306)
+
+- [Alpha-C：智能闲聊](https://github.com/kinghows/Alpha-C)
+
+- [Alpha-P：检测手机照片的拍摄时间和地点以及颜值](https://github.com/kinghows/Alpha-P)
+
+- [Alpha-D：人工智能刷抖音](https://github.com/kinghows/Alpha-D)
+
+- [Alpha-J：微信跳一跳python玩法](https://github.com/kinghows/Alpha-J)
+
