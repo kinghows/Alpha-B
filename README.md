@@ -62,3 +62,4 @@ pyinstaller –F –p moviepy Alpha-B.py
 
 - [Alpha-J：微信跳一跳python玩法](https://github.com/kinghows/Alpha-J)
 
+- [Alpha-A：量化投资--一个全栈实验项目](https://github.com/kinghows/Alpha-A)
