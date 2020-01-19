@@ -12,7 +12,8 @@ from tkinter import StringVar
 import configparser
 
 root=Tk()
-start_time = time.time()
+
+
 
 # 将输出重定向到表格
 def print(theText):
@@ -51,37 +52,23 @@ def callbackfunc(blocknum, blocksize, totalsize):
 
 
 def Schedule_cmd(blocknum, blocksize, totalsize):
-    speed = (blocknum * blocksize) / (time.time() - start_time)
-    # speed_str = " Speed: %.2f" % speed
-    speed_str = " Speed: %s" % format_size(speed)
+    global starttime
     recv_size = blocknum * blocksize
+    if blocknum == 0:
+        starttime = time.time()
+        speed = 0
+    else:
+        cost_time = time.time() - starttime
+        speed = recv_size / cost_time
+    speed_str = "%s" % format_size(speed)
 
     # 设置下载进度条
     pervent = recv_size / totalsize
     percent_str = "%.2f%%" % (pervent * 100)
     download.coords(fill_line1,(0,0,pervent*465,23))
     root.update()
-    pct.set(percent_str)
-
-
-
-def Schedule(blocknum, blocksize, totalsize):
-    speed = (blocknum * blocksize) / (time.time() - start_time)
-    # speed_str = " Speed: %.2f" % speed
-    speed_str = " Speed: %s" % format_size(speed)
-    recv_size = blocknum * blocksize
-
-    # 设置下载进度条
-    f = sys.stdout
-    pervent = recv_size / totalsize
-    percent_str = "%.2f%%" % (pervent * 100)
-    n = round(pervent * 50)
-    s = ('#' * n).ljust(50, '-')
-    print(percent_str.ljust(6, ' ') + '-' + speed_str)
-    f.flush()
-    time.sleep(2)
-    # print('\r')
-
+    #pct.set(percent_str)
+    pct.set(speed_str +'    '+percent_str)
 
 # 字节bytes转化K\M\G
 def format_size(bytes):
@@ -95,15 +82,15 @@ def format_size(bytes):
         M = kb / 1024
         if M >= 1024:
             G = M / 1024
-            return "%.3fG" % (G)
+            return "%.1fG" % (G)
         else:
-            return "%.3fM" % (M)
+            return "%.1fM" % (M)
     else:
-        return "%.3fK" % (kb)
+        return "%.1fK" % (kb)
 
 
 #  下载视频
-def down_video(owner_name,video_list, title, start_url, page):
+def down_video(owner_name,video_list, title, start_url, page,cidcount):
     num = 1
     
     currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video',owner_name)  # 当前目录作为下载目录
@@ -133,7 +120,7 @@ def down_video(owner_name,video_list, title, start_url, page):
         else:
             filename = os.path.join(currentVideoPath, r'{}.flv'.format(title))
 
-        if not os.path.exists(filename):
+        if not(cidcount>1 and os.path.exists(filename)):
             try:
                 urllib.request.urlretrieve(url=i, filename=filename,reporthook=Schedule_cmd)
             except urllib.error.HTTPError as e:
@@ -149,6 +136,7 @@ def down_videos(start,quality, start_url, headers,uid_no):
     if html['code']==0:
         data = html['data']
         owner_name = data['owner']['name']
+        titleb = data['title']
         cid_list = []
         if '?p=' in start:
             # 单独下载分P视频中的一集
@@ -158,16 +146,20 @@ def down_videos(start,quality, start_url, headers,uid_no):
             # 如果p不存在就是全集下载
             cid_list = data['pages']
 
+        cidcount = len(cid_list)
+
         for item in cid_list:
             cid = str(item['cid'])
             title = item['part']
+            if title=='未命名项目' or title=='':
+                title = titleb
             title = re.sub(r'[\/\\:*?"<>|]', '', title)  # 替换为空的
             print('[标题]:' + title)
             page = str(item['page'])
             start_url = start_url + "/?p=" + page
             video_list = get_play_list(start_url, cid, quality)
             start_time = time.time()
-            down_video(owner_name,video_list, title, start_url, page)
+            down_video(owner_name,video_list, title, start_url, page,cidcount)
             print('下载完成')
             end_time = time.time()  # 结束时间
             print('下载总耗时%.2f分钟' % (int(end_time - start_time) / 60))
