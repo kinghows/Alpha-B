@@ -1,11 +1,13 @@
 # Alpha-B
 Bilibili视频下载
 
-建议下载方式：
+下载方式：
 
-首先输入UP主UID号，例如：UID:456065280，把UP主已经发布的视频全部下载。然后在有更新视频后，输入逗号分隔的AV号，例如：70052790,71075368,71272687
+1、订阅方式：配置Alpha-B.ini，直接按开始下载，自动按照配置下载最新的视频。
 
-或者采用订阅方式：配置Alpha-B.ini，直接按开始下载，自动按照配置下载最新的视频。
+2、下载UP主全部视频：输入UP主UID号，例如：UID:456065280，把UP主已经发布的视频全部下载。
+
+3、下载单个视频：输入逗号分隔的AV号，例如：70052790,71075368,71272687
 
 [bili_set]
 
@@ -46,3 +48,18 @@ pip install numpy==1.16.2
 打包成一个exe文件：
 
 pyinstaller –F –p moviepy Alpha-B.py
+
+
+## 好玩的Alpha系列，喜欢的打颗星：
+
+- [Alpha-12306：买个票](https://github.com/kinghows/Alpha-12306)
+
+- [Alpha-C：智能闲聊](https://github.com/kinghows/Alpha-C)
+
+- [Alpha-P：检测手机照片的拍摄时间和地点以及颜值](https://github.com/kinghows/Alpha-P)
+
+- [Alpha-D：人工智能刷抖音](https://github.com/kinghows/Alpha-D)
+
+- [Alpha-J：微信跳一跳python玩法](https://github.com/kinghows/Alpha-J)
+
+- [Alpha-A：量化投资--一个全栈实验项目](https://github.com/kinghows/Alpha-A)
