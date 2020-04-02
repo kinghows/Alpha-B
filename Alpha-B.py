@@ -184,8 +184,8 @@ def down_uid(uid,last_aid,quality,headers,uid_no):
         html = requests.get(start_url, headers=headers).json()
         jsonvlist = html['data']['vlist']
         for i in range(len(jsonvlist)):
-            aid = str(jsonvlist[i]['aid'])
-            if aid == last_aid:
+            aid = jsonvlist[i]['aid']
+            if str(aid) == last_aid:
                 flag = False
                 break
             else:
@@ -195,8 +195,8 @@ def down_uid(uid,last_aid,quality,headers,uid_no):
     
     for aid in sorted(avlist):
     # 获取cid的api, 输入aid即可
-        start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
-        down_videos(aid,quality, start_url, headers,uid_no) 
+        start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + str(aid)
+        down_videos(str(aid),quality, start_url, headers,uid_no) 
 
 def get_uid_list(uid,headers):
     avlist = []
