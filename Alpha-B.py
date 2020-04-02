@@ -13,8 +13,6 @@ import configparser
 
 root=Tk()
 
-
-
 # 将输出重定向到表格
 def print(theText):
     msgbox.insert(END,theText+'\n')
@@ -90,7 +88,7 @@ def format_size(bytes):
 
 
 #  下载视频
-def down_video(owner_name,video_list, title, start_url, page,cidcount):
+def down_video(owner_name,video_list, title, start_url, page):
     num = 1
     
     currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video',owner_name)  # 当前目录作为下载目录
@@ -120,13 +118,12 @@ def down_video(owner_name,video_list, title, start_url, page,cidcount):
         else:
             filename = os.path.join(currentVideoPath, r'{}.flv'.format(title))
 
-        if not(cidcount>1 and os.path.exists(filename)):
-            try:
-                urllib.request.urlretrieve(url=i, filename=filename,reporthook=Schedule_cmd)
-            except urllib.error.HTTPError as e:
-                print('HTTPError reason: '+ e.reason)
-            except urllib.error.URLError as e:
-                print('URLError reason: '+ e.reason)
+        try:
+            urllib.request.urlretrieve(url=i, filename=filename,reporthook=Schedule_cmd)
+        except urllib.error.HTTPError as e:
+            print('HTTPError reason: '+ e.reason)
+        except urllib.error.URLError as e:
+            print('URLError reason: '+ e.reason)
 
         num += 1
 
@@ -135,10 +132,13 @@ def down_videos(start,quality, start_url, headers,uid_no):
     html = requests.get(start_url, headers=headers).json()
     if html['code']==0:
         data = html['data']
-        owner_name = data['owner']['name']
-        titleb = data['title']
+        if uid_no != '0' and uid_no != 'dlist' :
+            owner_name = data['owner']['name']
+        else:
+            owner_name = 'dlist'
+        pre_title = data['title']
         cid_list = []
-        if '?p=' in start:
+        if '?p=' in start_url:
             # 单独下载分P视频中的一集
             p = re.search(r'\?p=(\d+)',start).group(1)
             cid_list.append(data['pages'][int(p) - 1])
@@ -150,22 +150,23 @@ def down_videos(start,quality, start_url, headers,uid_no):
 
         for item in cid_list:
             cid = str(item['cid'])
-            title = item['part']
-            if title=='未命名项目' or title=='':
-                title = titleb
+            part = item['part']
+            if cidcount > 1 :
+                title = pre_title + part
+            else:
+                title = pre_title
             title = re.sub(r'[\/\\:*?"<>|]', '', title)  # 替换为空的
             print('[标题]:' + title)
             page = str(item['page'])
             start_url = start_url + "/?p=" + page
             video_list = get_play_list(start_url, cid, quality)
             start_time = time.time()
-            down_video(owner_name,video_list, title, start_url, page,cidcount)
-            print('下载完成')
+            down_video(owner_name,video_list, title, start_url, page)
             end_time = time.time()  # 结束时间
-            print('下载总耗时%.2f分钟' % (int(end_time - start_time) / 60))
+            print('下载完成,耗时%.2f分钟' % (int(end_time - start_time) / 60))
             print('*' * 30)
 
-        if uid_no != '':
+        if uid_no != '0' and uid_no != 'dlist' :
             config = configparser.ConfigParser()
             config.read("Alpha-B.ini")
             config.set("bili_set", "last_av"+uid_no,start)
@@ -197,7 +198,24 @@ def down_uid(uid,last_aid,quality,headers,uid_no):
         start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
         down_videos(aid,quality, start_url, headers,uid_no) 
 
-def do_prepare(inputStart,inputQuality):
+def get_uid_list(uid,headers):
+    avlist = []
+    pages = ''
+    start_url = "https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page=1&keyword=&order=pubdate"
+    html = requests.get(start_url, headers=headers).json()
+    pages = html['data']['pages']
+    for page in range(pages): 
+        start_url = "https://space.bilibili.com/ajax/member/getSubmitVideos?mid="+ uid +"&pagesize=30&tid=0&page="+ str(page+1) +"&keyword=&order=pubdate"
+        html = requests.get(start_url, headers=headers).json()
+        jsonvlist = html['data']['vlist']
+        for i in range(len(jsonvlist)):
+            aid = jsonvlist[i]['aid']
+            title = jsonvlist[i]['title']
+            avlist.append({'title':title,'aid':aid})
+    with open(uid+'.json', 'w',encoding='utf-8') as f:
+        json.dump(avlist, f,ensure_ascii=False, indent=2)
+
+def do_prepare(inputStart,downloadMode):
     # 清空进度条
     download.coords(fill_line1,(0,0,0,23))
     pct.set('0.00%')
@@ -212,41 +230,54 @@ def do_prepare(inputStart,inputQuality):
     # <accept_format><![CDATA[flv,flv720,flv480,flv360]]></accept_format>
     # <accept_description><![CDATA[高清 1080P,高清 720P,清晰 480P,流畅 360P]]></accept_description>
     # <accept_quality><![CDATA[80,64,32,16]]></accept_quality>
-    quality = inputQuality
+    quality = '80'
     # 获取视频的cid,title
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'
     }
-
+    
+    mode = downloadMode
     start = inputStart
     if start == '':
-        config = configparser.ConfigParser()
-        config.read("Alpha-B.ini")
-        uid_count = int(config.get("bili_set","uid_count"))
-        n = 1
-        while n <= uid_count:
-            uid_no = str(n)
-            uid = config.get ( "bili_set", "uid"+uid_no)
-            last_aid = config.get ( "bili_set", "last_av"+uid_no)
-            down_uid(uid,last_aid,quality,headers,uid_no)
-            print('UID' + uid_no + '：' + uid + ' 最新视频已下载。')
-            n += 1
-        print('所有订阅UP主的最新视频已下载。')
-    elif start[0:5] == 'https':  
-        # https://www.bilibili.com/video/av46958874/?spm_id_from=333.334.b_63686965665f7265636f6d6d656e64.16
-        start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + re.search(r'/av(\d+)/*', start).group(1)
-        uid_no = ''
-        down_videos(start,quality, start_url, headers,uid_no)
+        if mode == '订阅更新':
+            config = configparser.ConfigParser()
+            config.read("Alpha-B.ini")
+            uid_count = int(config.get("bili_set","uid_count"))
+            n = 1
+            while n <= uid_count:
+                uid_no = str(n)
+                uid = config.get ( "bili_set", "uid"+uid_no)
+                last_aid = config.get ( "bili_set", "last_av"+uid_no)
+                down_uid(uid,last_aid,quality,headers,uid_no)
+                print('UID' + uid_no.rjust(2) + ' : 最新视频已下载。')
+                n += 1
+            print('*** 所有最新视频已下载。')
+        else:
+            with open("dlist.json", "r", encoding="utf-8") as f:
+                j = json.load(f)
+            uid_no = 'dlist'
+            avlist = []
+            for i in range(len(j)):
+                aid = str(j[i]['aid'])
+                avlist.append(aid)
+            for aid in avlist:
+                start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
+                down_videos(aid,quality, start_url, headers,uid_no)
+                j.pop(0)
+                with open('dlist.json', 'w',encoding='utf-8') as f:
+                    json.dump(j, f,ensure_ascii=False, indent=2)
+            print('*** 所有下载列表视频已下载。***')
     elif start[0:4] == 'UID:': 
-        uid = start[4:]
-        last_aid = ''
-        uid_no = ''
-        down_uid(uid,last_aid,quality,headers,uid_no)
-    else:
-        avlist=[]
-        uid_no = ''
-        avlist = start.split(",")
-        for aid in avlist:
+        uidlist=[]
+        uidlist = start[4:].split(",")
+        for uid in uidlist:
+            get_uid_list(uid,headers)
+            print('UID:' + uid +'下载列表已完成。')        
+    elif start[0:4] == 'AID:':
+        aidlist=[]
+        uid_no = '0'
+        aidlist = start[4:].split(",")
+        for aid in aidlist:
         # 获取cid的api, 输入aid即可
             start_url = 'https://api.bilibili.com/x/web-interface/view?aid=' + aid
             down_videos(aid,quality, start_url, headers,uid_no)
@@ -277,30 +308,31 @@ if __name__ == "__main__":
     logo.pack()
     # 各项输入栏和选择框
     inputStart = Entry(root,bd=4,width=600)
-    labelStart=Label(root,text="请输入您要下载的B站av号或者视频链接地址或者UP主的UID号:") # 地址输入
+    labelStart=Label(root,text="请输入要下载的AID号进行下载或者UP主的UID号获取视频列表 : ") 
     labelStart.pack(anchor="w")
     inputStart.pack()
-    labelQual = Label(root,text="请选择您要下载视频的清晰度") # 清晰度选择
+    labelQual = Label(root,text="或者选择您要下载视频的方式直接下载 : ") 
     labelQual.pack(anchor="w")
-    inputQual = ttk.Combobox(root,state="readonly")
+    downloadMode = ttk.Combobox(root,state="readonly")
     # 可供选择的表
-    inputQual['value']=('1080P','720p','480p','360p')
+    downloadMode['value']=('订阅更新','下载列表')
     # 对应的转换字典
     keyTrans=dict()
-    keyTrans['1080P']='80'
-    keyTrans['720p']='64'
-    keyTrans['480p']='32'
-    keyTrans['360p']='16'
-    # 初始值为1080P
-    inputQual.current(0)
-    inputQual.pack()
-    confirm = Button(root,text="开始下载",command=lambda:thread_it(do_prepare,inputStart.get(), keyTrans[inputQual.get()] ))
+    keyTrans['订阅更新']='订阅更新'
+    keyTrans['下载列表']='下载列表'
+    # 初始值为订阅更新
+    downloadMode.current(0)
+    downloadMode.pack()
+    confirm = Button(root,text="  开  始  ",command=lambda:thread_it(do_prepare,inputStart.get(), keyTrans[downloadMode.get()] ))
     msgbox = Text(root)
-    msgbox.insert('1.0',"对于单P视频:\n 1.直接输入B站视频链接地址或B站av号\n (eg: https://www.bilibili.com/video/av71584262 or 71584262)\n 2.多个单P视频输入逗号分隔的B站av号\n (eg: 71584262,71559288,71459946)\n\n对于多P视频:\n 1.下载全集:直接输入B站av号或者视频链接地址\n (eg: 49842011或者https://www.bilibili.com/video/av49842011)\n 2.下载其中一集:输入那一集的视频链接地址\n (eg: https://www.bilibili.com/video/av19516333/?p=2)\n\n对于下载UP主的所有视频：\n 直接输入UP主的ID\n (eg: UID:456065280)\n\n对于下载所有关注UP主的最新视频：\n 不用输入直接点击开始下载，自动根据Alpha-B.ini配置下载最新视频。")
+    msgbox.insert('1.0',"选择订阅更新:\n    根据 Alpha-B.ini 下载UP主最新视频。\n\n"+
+                        "选择下载列表:\n    根据 dlist.json 下载列表中视频。\n\n"+
+                        "获取视频列表:\n    输入UP主的UID(eg: UID:456065280,296793775),视频列表将写入 id.json文件。\n\n"+
+                        "下载单个视频:\n    输入视频列表中的AID(eg: AID:71584262,71559288)\n\n")
     msgbox.pack()
     download=Canvas(root,width=465,height=23,bg="white")
     # 进度条的设置
-    labelDownload=Label(root,text="下载进度")
+    labelDownload=Label(root,text="下载进度 : ")
     labelDownload.pack(anchor="w")
     download.pack()
     fill_line1 = download.create_rectangle(0, 0, 0, 23, width=0, fill="green")
