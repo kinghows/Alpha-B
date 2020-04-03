@@ -91,7 +91,7 @@ def format_size(bytes):
 
 
 #  下载视频
-def down_video(owner_name,video_list, title, start_url, page):
+def down_video(owner_name,video_list, title, start_url, page,cidcount):
     num = 1
     
     currentVideoPath = os.path.join(os.getcwd(), 'bilibili_video',owner_name)  # 当前目录作为下载目录
@@ -121,12 +121,13 @@ def down_video(owner_name,video_list, title, start_url, page):
         else:
             filename = os.path.join(currentVideoPath, r'{}.flv'.format(title))
 
-        try:
-            urllib.request.urlretrieve(url=i, filename=filename,reporthook=Schedule_cmd)
-        except urllib.error.HTTPError as e:
-            print('HTTPError reason: '+ e.reason)
-        except urllib.error.URLError as e:
-            print('URLError reason: '+ e.reason)
+        if not(cidcount>1 and os.path.exists(filename)):
+            try:
+                urllib.request.urlretrieve(url=i, filename=filename,reporthook=Schedule_cmd)
+            except urllib.error.HTTPError as e:
+                print('HTTPError reason: '+ e.reason)
+            except urllib.error.URLError as e:
+                print('URLError reason: '+ e.reason)
 
         num += 1
 
@@ -164,7 +165,7 @@ def down_videos(start,quality, start_url, headers,uid_no):
             start_url = start_url + "/?p=" + page
             video_list = get_play_list(start_url, cid, quality)
             start_time = time.time()
-            down_video(owner_name,video_list, title, start_url, page)
+            down_video(owner_name,video_list, title, start_url, page,cidcount)
             end_time = time.time()  # 结束时间
             print('下载完成,耗时%.2f分钟' % (int(end_time - start_time) / 60))
             print('*' * 30)
