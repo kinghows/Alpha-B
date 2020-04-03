@@ -4,8 +4,8 @@
 import requests, time, hashlib,urllib.request,urllib.error,re, json
 import imageio
 imageio.plugins.ffmpeg.download()
-from moviepy.editor import *
-import os, sys, threading
+#from moviepy.editor import *
+import os, threading
 from tkinter import *
 from tkinter import ttk
 from tkinter import StringVar
@@ -57,7 +57,10 @@ def Schedule_cmd(blocknum, blocksize, totalsize):
         speed = 0
     else:
         cost_time = time.time() - starttime
-        speed = recv_size / cost_time
+        if cost_time == 0:
+            speed = 0
+        else:
+            speed = recv_size / cost_time
     speed_str = "%s" % format_size(speed)
 
     # 设置下载进度条
