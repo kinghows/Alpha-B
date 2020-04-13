@@ -47,7 +47,7 @@ pip install numpy==1.16.2
 
 打包成一个exe文件：
 
-pyinstaller –F –p moviepy Alpha-B.py
+pyinstaller –F Alpha-B.py
 
 
 ## 好玩的Alpha系列，喜欢的打颗星：
